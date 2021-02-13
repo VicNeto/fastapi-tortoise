@@ -1,8 +1,9 @@
-from typing import List
+from typing import List, Optional
 
-from fastapi import FastAPI, HTTPException
-from models import User, User_Pydantic, UserIn_Pydantic
+from fastapi import FastAPI, HTTPException, Header
+from models.author import Author_Pydantic, AuthorIn_Pydantic, Author, Book, Book_Pydantic, BookIn_Pydantic
 from pydantic import BaseModel
+from .db import TORTOISE_ORM
 
 from tortoise.contrib.fastapi import HTTPNotFoundError, register_tortoise
 
@@ -19,43 +20,55 @@ async def pong():
     return "Pong"
 
 
-@app.get("/users", response_model=List[User_Pydantic])
-async def get_users():
-    return await User_Pydantic.from_queryset(User.all())
+@app.get("/authors", response_model=List[Author_Pydantic])
+async def get_Authors():
+    # print(Book_Pydantic.schema_json(indent=4))
+    # print(Author_Pydantic.schema_json(indent=4))
+    return await Author_Pydantic.from_queryset(Author.all())
 
-@app.post("/users", response_model=User_Pydantic)
-async def create_user(user: UserIn_Pydantic):
-    user_obj = await User.create(**user.dict(exclude_unset=True))
-    return await User_Pydantic.from_tortoise_orm(user_obj)
+@app.post("/authors", response_model=Author_Pydantic)
+async def create_Author(author: AuthorIn_Pydantic):
+    author_obj = await Author.create(**author.dict(exclude_unset=True))
+    return await Author_Pydantic.from_tortoise_orm(author_obj)
+
+@app.get("/books", response_model=List[Book_Pydantic])
+async def get_books():
+    return await Book_Pydantic.from_queryset(Book.all())
+
+@app.post("/books", response_model=Book_Pydantic)
+async def create_book(book: BookIn_Pydantic, user: Optional[str] = Header(None)):
+    author = await Author.get(id=user)
+    book_obj = await Book.create(**book.dict(exclude_unset=True), author=author)
+    return await Book_Pydantic.from_tortoise_orm(book_obj)
 
 
 @app.get(
-    "/user/{user_id}", response_model=User_Pydantic, responses={404: {"model": HTTPNotFoundError}}
+    "/authors/{author_id}", response_model=Author_Pydantic, responses={404: {"model": HTTPNotFoundError}}
 )
-async def get_user(user_id: int):
-    return await User_Pydantic.from_queryset_single(User.get(id=user_id))
+async def get_Author(author_id: int):
+    return await Author_Pydantic.from_queryset_single(Author.get(id=author_id))
 
 
 @app.put(
-    "/user/{user_id}", response_model=User_Pydantic, responses={404: {"model": HTTPNotFoundError}}
+    "/authors/{author_id}", response_model=Author_Pydantic, responses={404: {"model": HTTPNotFoundError}}
 )
-async def update_user(user_id: int, user: UserIn_Pydantic):
-    await User.filter(id=user_id).update(**user.dict(exclude_unset=True))
-    return await User_Pydantic.from_queryset_single(User.get(id=user_id))
+async def update_Author(author_id: int, author: AuthorIn_Pydantic):
+    await Author.filter(id=author_id).update(**author.dict(exclude_unset=True))
+    return await Author_Pydantic.from_queryset_single(Author.get(id=author_id))
 
 
-@app.delete("/user/{user_id}", response_model=Status, responses={404: {"model": HTTPNotFoundError}})
-async def delete_user(user_id: int):
-    deleted_count = await User.filter(id=user_id).delete()
+@app.delete("/authors/{author_id}", response_model=Status, responses={404: {"model": HTTPNotFoundError}})
+async def delete_Author(author_id: int):
+    deleted_count = await Author.filter(id=author_id).delete()
     if not deleted_count:
-        raise HTTPException(status_code=404, detail=f"User {user_id} not found")
-    return Status(message=f"Deleted user {user_id}")
+        raise HTTPException(status_code=404, detail=f"Author {author_id} not found")
+    return Status(message=f"Deleted Author {author_id}")
 
 
 register_tortoise(
     app,
-    db_url="sqlite://:memory:",
-    modules={"models": ["models"]},
     generate_schemas=True,
+    config=TORTOISE_ORM,
+    modules={"models": ["models"]},
     add_exception_handlers=True,
 )
