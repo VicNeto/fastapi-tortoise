@@ -1,4 +1,9 @@
+from pathlib import Path
+from dotenv import load_dotenv
 import os
+dir_path = Path(os.path.dirname(os.path.abspath(__file__)))
+PARENT_DIR = dir_path.parent
+load_dotenv(os.path.join(PARENT_DIR, ".env"))
 
 TORTOISE_ORM = {
     'connections': {

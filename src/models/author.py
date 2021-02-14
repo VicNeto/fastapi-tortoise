@@ -1,6 +1,5 @@
 from tortoise import fields, models
 from tortoise.contrib.pydantic import pydantic_model_creator
-# from .book import Book
 
 class Author(models.Model):
 
@@ -20,7 +19,7 @@ class Author(models.Model):
         return self.username
 
     class PydanticMeta:
-        exclude = ["password_hash"]
+        exclude = ["password_hash", "books"]
 
 class Book(models.Model):
     id = fields.IntField(pk=True)
@@ -34,9 +33,3 @@ class Book(models.Model):
     def __str__(self):
         return self.title
 
-
-Book_Pydantic = pydantic_model_creator(Book, name="Book")
-BookIn_Pydantic = pydantic_model_creator(Book, name="BookIn", exclude_readonly=True)
-
-Author_Pydantic = pydantic_model_creator(Author, name="Author")
-AuthorIn_Pydantic = pydantic_model_creator(Author, name="AuthorIn", exclude_readonly=True)
